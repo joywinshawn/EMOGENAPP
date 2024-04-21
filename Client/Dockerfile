@@ -6,13 +6,13 @@ RUN npm cache clean --force
 
 RUN rm -rf package-lock.json node_modules
 
-COPY package.json /app/
+COPY ./Emogen-App/package.json /app/
 
 RUN npm install
 
 RUN npm install -g npm@latest
 
-COPY ../ /app/
+COPY ./Emogen-App/ /app/
 
 EXPOSE 5173
 
