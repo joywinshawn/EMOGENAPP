@@ -1,0 +1,23 @@
+version: '3'
+services:
+  flask-backend:
+    container_name: 'flask-app3'
+    image: flask-emogen:0.0.0
+    build:
+      context: ./Server/Dockerfile
+      dockerfile: Dockerfile
+    ports:
+      - 0.0.0.0:5000:5000
+    volumes:
+      - ./Server:/app/
+  
+  react-frontend:
+    container_name: 'vite-react-app3'
+    image: react-emogen:0.0.0
+    build:
+      context: ./Client/
+      dockerfile: Dockerfile
+    ports:
+      - 0.0.0.0:5173:5173
+    volumes:
+      - ./Client/Emogen-App:/app/
