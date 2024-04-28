@@ -1,6 +1,7 @@
 import os
 import time
 import click
+import random
 import pickle
 import logging
 import librosa
@@ -117,7 +118,19 @@ def predict_emotion(file_path):
     else:
         return "Error processing the audio file.", 500
 
-        
+def check_frequency(file_path):
+    y, sr = librosa.load(file_path)
+    fft = np.fft.fft(y)
+    frequencies = np.fft.fftfreq(len(fft), 1/sr)
+    low_freq_range = (0, 200)
+    low_freq_indices = np.where((frequencies >= low_freq_range[0]) & (frequencies <= low_freq_range[1]))[0]
+    average_magnitude = np.mean(np.abs(fft[low_freq_indices]))
+    threshold = 2
+    print(average_magnitude)
+    if average_magnitude < threshold:
+        return False
+    else:
+        return True
 
 @app.route('/')
 def ping():
@@ -146,7 +159,11 @@ def upload_file():
         request_arrival_time = datetime.now().strftime("%m/%d/%Y %I:%M %p")
 
         request_time = time.time()
-
+        print(check_frequency(file_path))
+        is_audio_eligible = check_frequency(file_path)
+        if not is_audio_eligible:
+            return jsonify({'error': 'Low Frequency Detected'}), 200
+        
         # Predict gender
         gender_prediction = predict_gender(file_path)
         gender_response_time = time.time()
@@ -177,8 +194,8 @@ def upload_file():
         file_name = file.filename
         gender = gender_prediction[0]['predictedGender']
         response_sent_time = datetime.now().strftime("%m/%d/%Y %I:%M %p")
-
-        email_thread = Thread(target=emailServer.email_service, args=(file_name, emotion, gender, request_arrival_time, response_sent_time, emotion_total_response_time, gender_total_response_time))
+        report_id = ''.join(random.choices('0123456789', k=4))
+        email_thread = Thread(target=emailServer.email_service, args=(report_id, file_name, emotion, gender, request_arrival_time, response_sent_time, emotion_total_response_time, gender_total_response_time))
         email_thread.start()
 
 

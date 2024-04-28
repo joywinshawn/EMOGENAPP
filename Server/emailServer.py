@@ -8,11 +8,10 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.base import MIMEBase
 from email import encoders
-report_id = ''.join(random.choices('0123456789', k=4))
+
 
 subject = 'EMOGEN TESTING'
-def email_body(file_name, predicted_emotion, predicted_gender, request_arrived, response_sent, time_taken_by_emotion_model, time_taken_by_gender_model):
-    
+def email_body(report_id, file_name, predicted_emotion, predicted_gender, request_arrived, response_sent, time_taken_by_emotion_model, time_taken_by_gender_model):
     now = datetime.now()
     todays_date = now.strftime("%m/%d/%Y")
 
@@ -235,8 +234,8 @@ def email_body(file_name, predicted_emotion, predicted_gender, request_arrived, 
 </html>
 """
 
-def email_service(file_name, predicted_emotion, predicted_gender, request_arrived, response_sent, time_taken_by_emotion_model, time_taken_by_gender_model):
-    body = email_body(file_name, predicted_emotion, predicted_gender, request_arrived, response_sent, time_taken_by_emotion_model, time_taken_by_gender_model)
+def email_service(report_id, file_name, predicted_emotion, predicted_gender, request_arrived, response_sent, time_taken_by_emotion_model, time_taken_by_gender_model):
+    body = email_body(report_id, file_name, predicted_emotion, predicted_gender, request_arrived, response_sent, time_taken_by_emotion_model, time_taken_by_gender_model)
     msg = MIMEMultipart()
     msg['From'] = credentials.server_email
     msg['To'] = credentials.admin_email

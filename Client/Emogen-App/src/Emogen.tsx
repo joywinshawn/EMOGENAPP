@@ -5,10 +5,12 @@ import axios from './axiosInstance';
 function Emogen() {
     const [showInput, setShowInput] = useState(false);
     const [file, setFile] = useState(null);
-    const [fileName, setFileName] = useState(null); // Add this line
+    const [fileName, setFileName] = useState(null);
     const [showPredict, setShowPredict] = useState(false);
     const [predictions, setPredictions] = useState(null);
-    const [postFile, setFileForPost] = useState(null)
+    const [postFile, setFileForPost] = useState(null);
+    const [showResults, setShowResults] = useState(false);
+    const [showError, setError] = useState(false);
 
     const handleClick = () => {
         setShowInput(true);
@@ -18,7 +20,7 @@ function Emogen() {
         const file = event.target.files[0];
         console.log(file);
         setFile(URL.createObjectURL(file));
-        setFileName(file.name); 
+        setFileName(file.name);
         setShowInput(false);
         setShowPredict(true);
         setFileForPost(file)
@@ -33,25 +35,38 @@ function Emogen() {
         setFileName(null);
         setShowInput(true);
         setShowPredict(false);
+        setError(false);
     };
 
     const handleGenerate = async () => {
         const formData = new FormData();
         formData.append("file", postFile);
-        console.log(formData);
-
-      
-        axios.post("/upload", formData)
-          .then((response) => {
-            setPredictions(response.data);
-          })
-          .catch((error) => {
-            console.error("Error uploading file:", error);
-          });
-      };
+    
+        try {
+            const response = await axios.post("/upload", formData);
+            console.log(response.data);
+            if (response.status === 200) {
+                setPredictions(response.data);
+                const hasError = response.data.error;
+                if (hasError) {
+                    setShowResults(false);
+                    setShowPredict(true);
+                    setError(true);
+                } else {
+                    setShowResults(true);
+                    setShowPredict(false);
+                    setError(false);
+                }
+            } else {
+                throw new Error('Failed to fetch predictions');
+            }
+        } catch (error) {
+            console.error("Error");
+        }
+    };
 
     return (
-        <>
+        <div>
             <div className="video-background">
                 <video autoPlay loop muted className="fullscreen-video">
                     <source src="/videoback.mp4" type="video/mp4" />
@@ -61,11 +76,12 @@ function Emogen() {
                 <img src="/apptitle.png" alt="Title" className="title-image" />
             </div>
             <div className='container'>
-                {!showInput && !file &&
+                {!showInput && !file && !showResults &&
                     <button className='buttoninput' onClick={handleClick}>
                         <img src="/inputfileicon.png" alt="Upload Icon" />
-                    </button>}
-                {showInput &&
+                    </button>
+                }
+                {showInput && !showResults &&
                     <div className='transparent-box'>
                         <div className="message1">
                             Audio File Here...
@@ -80,10 +96,13 @@ function Emogen() {
                         </div>
                     </div>
                 }
-                {file && !predictions &&
+                {file && !showResults &&
                     <div className='transparent-box'>
                         <div className='message1'>
-                            File Uploaded Successfully !!!
+                            
+                        {showError ? <span style={{ color: 'red' }}>{predictions.error}</span> : 'File Uploaded Successfully !!!'}
+
+
                         </div>
                         <div className='audio-container'><audio controls>
                             <source src={file} type="audio/wav" />
@@ -95,30 +114,55 @@ function Emogen() {
                                 <p>{fileName}</p>
                             </div>
                         </div>
-                    </div>}
+                    </div>
+                }
+                {showResults &&
+                    <div className='transparent-box2'>
+                        <h1>Estimated Result</h1>
+                        <div className='result-container' style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                            <div className='emoji'>
+                                {predictions.emotionPrediction.predictedEmotion === 'Happy' && predictions.genderPrediction[0].predictedGender === 'Male' ?
+                                    <img src="/maleHappy.jpg" alt="HappyMale" /> :
+                                    predictions.emotionPrediction.predictedEmotion === 'Sad' && predictions.genderPrediction[0].predictedGender === 'Male' ?
+                                    <img src="/maleSad.jpg" alt="SadMale" /> :
+                                        predictions.emotionPrediction.predictedEmotion === 'Neutral' && predictions.genderPrediction[0].predictedGender === 'Male' ?
+                                        <img src="/maleNeutral.jpg" alt="NeutralMale" /> :
+                                        predictions.emotionPrediction.predictedEmotion === 'Happy' && predictions.genderPrediction[0].predictedGender === 'Female' ?
+                                        <img src="/femaleHappy.jpg" alt="Happyfemale" /> :
+                                        predictions.emotionPrediction.predictedEmotion === 'Sad' && predictions.genderPrediction[0].predictedGender === 'Female' ?
+                                        <img src="/femaleSad.jpg" alt="Sadfemale" /> :
+                                        predictions.emotionPrediction.predictedEmotion === 'Neutral' && predictions.genderPrediction[0].predictedGender === 'Female' ?
+                                        <img src="/femaleNeutral.jpg" alt="Neutralfemale" /> : 'ERROR'
+                                    }
+                            </div>
+                            <div className='results' style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' }}>
+                                <div className='result1'>Emotion: <p><b>{predictions.emotionPrediction.predictedEmotion}</b></p></div>
+                                <div className='result2'>Confidence: <p><b>{(predictions.emotionPrediction.confidenceScore * 100).toFixed(2)}%</b></p></div>
+                                <div className='result3'>Gender: <p><b>{predictions.genderPrediction[0].predictedGender}</b></p></div>
+                                <div className='result4'>
+                                    Confidence:
+                                    <p>
+                                        <b>
+                                            {`${(predictions.genderPrediction[0].confidenceScores.Male > predictions.genderPrediction[0].confidenceScores.Female ?
+                                                predictions.genderPrediction[0].confidenceScores.Male : predictions.genderPrediction[0].confidenceScores.Female) * 100
+                                                }%`}
+                                        </b>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
             <div className='buttoncontainer'>
-                {showPredict && !predictions &&
+                {showPredict && !showResults &&
                     <>
                         <button className='buttonreupload' onClick={handleReupload}>RE-UPLOAD</button>&nbsp;&nbsp;&nbsp;
                         <button className='buttongenerate' onClick={handleGenerate}>GENERATE</button>
                     </>
                 }
             </div>
-            {predictions &&
-                <div className='transparent-box'>
-                    <div>Predicted Gender: {predictions.genderPrediction[0].predictedGender}</div>
-                     <div>Confidence Scores:</div>
-                    <ul>
-                        <li>Male: {predictions.genderPrediction[0].confidenceScores.Male}</li>
-                        <li>Female: {predictions.genderPrediction[0].confidenceScores.Female}</li>
-                        <li>Predicted Emotion: {predictions.emotionPrediction.predictedEmotion}</li>
-                        <li>Confidence Score: {predictions.emotionPrediction.confidenceScore}</li>
-                    </ul>
-                </div>
-
-            }
-        </>
+        </div>
     );
 }
 
